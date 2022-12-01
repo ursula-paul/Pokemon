@@ -1,11 +1,18 @@
 import { Stat } from "./models/Stat";
-import { FastifyRequest, FastifyReply } from "fastify";
-import axios from "axios";
+import fastify, { FastifyRequest, FastifyReply } from "fastify";
+import { get } from "https";
 
-//import { PokemonWithStats } from "models/PokemonWithStats";
-//import Server from "server";
-
-import { Stat as stats } from "models/Stat";
+async function fetch(url: string) {
+  return new Promise((resolve) => {
+    get(url, (response) => {
+      let data = "";
+      response.on("data", (chunk) => (data += chunk));
+      response.on("end", () => {
+        resolve(JSON.parse(data));
+      });
+    });
+  });
+}
 
 export async function getPokemonByName(
   request: FastifyRequest,
@@ -25,45 +32,24 @@ export async function getPokemonByName(
       ? ((params["name"] = name),
         (urlApiPokeman = urlApiPokeman + "/"),
         (urlApiPokeman = urlApiPokeman + name))
-      : ((urlApiPokeman = urlApiPokeman + '"?offset=20"'),
+      : ((urlApiPokeman = urlApiPokeman + "?offset=20"),
         (urlApiPokeman = urlApiPokeman + "&limit=20"))
-    : ((urlApiPokeman = urlApiPokeman + '"?offset=20"'),
+    : ((urlApiPokeman = urlApiPokeman + "?offset=20"),
       (urlApiPokeman = urlApiPokeman + "&limit=20"));
 
-  const http = require("http");
-  const keepAliveAgent = new http.Agent({ keepAlive: true });
+  console.log({ urlApiPokeman });
+  const data = await fetch(urlApiPokeman);
 
-  let response: any = [];
-
-  console.log("bdsbzxbd");
-
-  // let data = await axios.get(urlApiPokeman);
-  // console.log(data.data, "dfhskjhdj");
-  http.request(
-    { ...reply.headers, ...{ hostname: urlApiPokeman, port: 80 } },
-    (result) => {
-      response = result;
-
-      console.log(result, "i am here");
-    }
-  );
-  console.log("mehdshgabehsgbh");
-  return reply.send({ name: "me" });
-
-  if (response == null) {
+  if (data == null) {
     reply.code(404);
   }
 
-  computeResponse(response, reply);
+  reply.headers({ "Content-Type": "application/json" });
 
-  return reply.send(response);
+  return reply.send(data);
 }
 
-export const computeResponse = async (
-  //response: unknown,
-  response: any,
-  reply: FastifyReply
-) => {
+export const computeResponse = async (response: any, reply: FastifyReply) => {
   const resp = response as any;
 
   let types = resp.types
